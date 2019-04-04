@@ -1,0 +1,28 @@
+{
+  "name": "sonarr-batch-import",
+  "version": "1.0.0",
+  "description": "Mass import series into Sonarr",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Makeshift/sonarr-batch-import.git"
+  },
+  "author": "Makeshift@Github",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Makeshift/sonarr-batch-import/issues"
+  },
+  "homepage": "https://github.com/Makeshift/sonarr-batch-import#readme",
+  "dependencies": {
+    "cli-highlight": "^2.1.0",
+    "log-rotate": "^0.2.8",
+    "nconf": "^0.10.0",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.7",
+    "triple-beam": "^1.3.0",
+    "winston": "^3.2.1"
+  }
+}
