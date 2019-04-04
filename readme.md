@@ -27,6 +27,10 @@ This project uses [nconf](https://github.com/indexzero/nconf), so settings can b
 | profile   | Name of the profile you want to add the series to                  | Yes      | "HD - 720p/1080p"     |
 | profileId | If you know the ID of the profile you want, we can skip the lookup | Yes      | Gathered from profile |
 | delimiter | The delimiter that separates each series in your file              | Yes      | os.EOL                |
+| rootFolderId | The ID of the rootFolder to override the auto-detection, may be required if you have multiple root folders | Kind of? | If you have only one root folder, it will use it. Otherwise, specify the ID of the one you want to use.
+| ignoreEpisodesWithFiles | See [Sonarr Series API](https://github.com/Sonarr/Sonarr/wiki/Series) | Yes | false |
+| ignoreEpisodesWithoutFiles | See [Sonarr Series API](https://github.com/Sonarr/Sonarr/wiki/Series) | Yes | false |
+| searchForMissingEpisodes | See [Sonarr Series API](https://github.com/Sonarr/Sonarr/wiki/Series) | Yes | true |
 
 ## Setup
 

@@ -7,6 +7,7 @@ const stream = require('stream');
 const util = require('util');
 const pipeline = util.promisify(stream.pipeline);
 const path = require('path');
+const {replaceErrors} = require('./errors.js');
 
 let sonarr = (new URL(config.get("url"))).origin
 log.info("Starting...", {sonarr: sonarr, logLevel: config.get("logLevel")})
@@ -19,9 +20,9 @@ async function getSeries(name) {
 			qs: {
 				apikey: config.get("apikey"),
 				term: name
-			}
+			},
+			json: true
 		})
-		search = JSON.parse(search);
 		log.debug("Search result", {result: search})
 		let result = [];
 		let cleanResults;
@@ -58,8 +59,8 @@ async function getSeries(name) {
 	}
 }
 
-async function addSeries(series) {
-	log.info("Adding series to Sonarr", {series: series});
+async function addSeries(series, rootFolder) {
+	log.info("Adding series to Sonarr", {series: series.title});
 	try {
 		await request.post({
 			url: `${sonarr}/api/series`,
@@ -69,7 +70,11 @@ async function addSeries(series) {
 				qualityProfileId: config.get("profileId"),
 				titleSlug: series.titleSlug,
 				images: series.images,
-				seasons: series.seasons
+				seasons: series.seasons,
+				rootFolderPath: rootFolder,
+				searchForMissingEpisodes: config.get("searchForMissingEpisodes"),
+				ignoreEpisodesWithFiles: config.get("ignoreEpisodesWithFiles"),
+				ignoreEpisodesWithoutFiles: config.get("ignoreEpisodesWithoutFiles")
 			},
 			qs: {
 				apikey: config.get("apikey")
@@ -92,9 +97,9 @@ async function setQualityProfileId() {
 			url: `${sonarr}/api/profile`,
 			qs: {
 				apikey: config.get("apikey")
-			}
+			},
+			json: true
 		});
-		profiles = JSON.parse(profiles);
 		log.verbose("Got profiles", {profiles: profiles})
 		
 		let gotProfile;
@@ -114,6 +119,40 @@ async function setQualityProfileId() {
 	log.info("Profile ID set", {profileId: profileId})
 }
 
+async function getRootFolder() {
+	log.verbose("Getting root folder", {sonarr: sonarr});
+	try {
+		let folders = await request({
+			url: `${sonarr}/api/rootfolder`,
+			qs: {
+				apikey: config.get("apikey")
+			},
+			json: true
+		});
+		if (folders.length === 1) {
+			log.info("Setting root folder.", {folder: folders[0].path})
+			return folders[0].path;
+		} else if (config.get("rootFolderId")) {
+			let returnFolder;
+			folders.map(folder => {
+				if (folder.id === config.get("rootFolderId")) {
+					returnFolder = folder.path;
+				}
+			})
+			if (!returnFolder) {
+				log.error("Couldn't find the rootFolderId you specified!", {lookedFor: config.get("rootFolderId"), got: folders})
+				process.exit(1);
+			}
+			return returnFolder;
+		} else {
+			log.error("Multiple root folders found! Override it in your config.json", {folders: folders});
+			process.exit(1);
+		}
+	} catch(e) {
+		log.error("Error getting root folder.", {error: JSON.stringify(e, replaceErrors)})
+		process.exit(1);
+	}
+}
 
 async function getAllSeries() {
 	log.verbose("Getting a list of all series", {sonarr: sonarr})
@@ -121,9 +160,9 @@ async function getAllSeries() {
 		url: `${sonarr}/api/series`,
 		qs: {
 			apikey: config.get("apikey")
-		}
+		},
+		json: true
 	});
-	allSeries = JSON.parse(allSeries);
 	if (!allSeries) {
 		log.error("Not able to get series list! Failing.", {sonarr: sonarr});
 		process.exit(1);
@@ -146,6 +185,7 @@ async function getAllSeries() {
 async function run() {
 	try {
 		let allSeries = await getAllSeries();
+		let rootFolder = await getRootFolder();
 		await setQualityProfileId();
 		let delimiter = config.get("delimiter");
 		let listPath = path.resolve(config.get("listfile"));
@@ -157,7 +197,7 @@ async function run() {
 				log.verbose("Checking if series is already in Sonarr", {series: series})
 				if (!allSeries.includes(series.toLowerCase())) {
 					log.info("Series is not in Sonarr, looking up series", {series: series})
-					let got = await getSeries(series);
+					let got = await getSeries(series, rootFolder);
 					if (got) {
 						log.info("Got result, submitting to Sonarr", {series: series})
 						await addSeries(got);
@@ -178,18 +218,6 @@ async function run() {
 	}
 }
 
-function replaceErrors(key, value) {
-    if (value instanceof Error) {
-        let error = {};
 
-        Object.getOwnPropertyNames(value).forEach(function (key) {
-            error[key] = value[key];
-        });
-
-        return error;
-    }
-
-    return value;
-}
 
 run();

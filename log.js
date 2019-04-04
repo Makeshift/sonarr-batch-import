@@ -14,7 +14,7 @@ function formatForTTY() {
 }
 
 const cliFormat = printf(info => {
-  return `${info.timestamp} ${info.level}: ${info.message} - ${info[SPLAT] ? highlight(JSON.stringify(info[SPLAT], null, 2), {language: 'json', ignoreIllegals: true}) : null}`;
+  return `${info.timestamp} ${info.level}: ${info.message} - ${info[SPLAT] ? highlight(JSON.stringify(info[SPLAT], null, 2), {language: 'json', ignoreIllegals: true}) : ""}`;
 });
 
 const logfileFormat = printf(info => {

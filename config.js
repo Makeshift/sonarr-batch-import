@@ -12,7 +12,11 @@ nconf.defaults({
 	logLevel: "info",
 	profile: "HD - 720p/1080p",
 	profileId: undefined,
-	delimiter: os.EOL
+	delimiter: os.EOL,
+	rootFolderId: null,
+	searchForMissingEpisodes: true,
+	ignoreEpisodesWithFiles: false,
+	ignoreEpisodesWithoutFiles: false
 })
 
 module.exports = nconf;
