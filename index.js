@@ -77,8 +77,8 @@ async function addSeries(series) {
 			json: true
 		})
 	} catch(e) {
-		log.error("Error searching for series.", {series: name, error: JSON.stringify(e, replaceErrors)})
-		fail.submit("Error searching for series.", {series: name, error: JSON.stringify(e, replaceErrors)})
+		log.error("Error searching for series.", {series: series, error: JSON.stringify(e, replaceErrors)})
+		fail.submit("Error searching for series.", {series: series, error: JSON.stringify(e, replaceErrors)})
 	}
 	return;
 }
