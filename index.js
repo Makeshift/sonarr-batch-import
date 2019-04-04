@@ -71,7 +71,7 @@ async function addSeries(series, rootFolder) {
 				titleSlug: series.titleSlug,
 				images: series.images,
 				seasons: series.seasons,
-				rootFolderPath: rootFolder,
+				path: rootFolder + series.title,
 				searchForMissingEpisodes: config.get("searchForMissingEpisodes"),
 				ignoreEpisodesWithFiles: config.get("ignoreEpisodesWithFiles"),
 				ignoreEpisodesWithoutFiles: config.get("ignoreEpisodesWithoutFiles")
@@ -82,8 +82,8 @@ async function addSeries(series, rootFolder) {
 			json: true
 		})
 	} catch(e) {
-		log.error("Error searching for series.", {series: series, error: JSON.stringify(e, replaceErrors)})
-		fail.submit("Error searching for series.", {series: series, error: JSON.stringify(e, replaceErrors)})
+		log.error("Error adding series.", {series: series, error: JSON.stringify(e, replaceErrors)})
+		fail.submit("Error adding series.", {series: series, error: JSON.stringify(e, replaceErrors)})
 	}
 	return;
 }
@@ -199,7 +199,7 @@ async function run() {
 					log.info("Series is not in Sonarr, looking up series", {series: series})
 					let got = await getSeries(series, rootFolder);
 					if (got) {
-						log.info("Got result, submitting to Sonarr", {series: series})
+						log.verbose("Got result, submitting to Sonarr", {series: series})
 						await addSeries(got);
 					}
 				} else {
