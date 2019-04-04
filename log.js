@@ -22,15 +22,18 @@ const logfileFormat = printf(info => {
 });
 
 const log = createLogger({
-  format: formatForTTY(),
+  
   transports: [
     new transports.Console({
     	timestamp: true,
     	showLevel: true,
-    	level: config.get("logLevel")
+    	level: config.get("logLevel"),
+      format: formatForTTY()
     }),
   new transports.File({
-    filename: `logs/run.${getDate()}.log`
+    filename: `logs/run.${getDate()}.log`,
+    format: combine(json(), logfileFormat),
+    level: "debug"
   })
   ]
 });

@@ -1,4 +1,5 @@
 const nconf = require('nconf');
+const os = require('os');
 
 nconf
 .argv()
@@ -8,7 +9,10 @@ nconf
 
 nconf.defaults({
 	listfile: "series.txt",
-	logLevel: "info"
+	logLevel: "info",
+	profile: "HD - 720p/1080p",
+	profileId: undefined,
+	delimiter: os.EOL
 })
 
 module.exports = nconf;
