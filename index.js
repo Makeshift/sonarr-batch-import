@@ -12,44 +12,49 @@ let sonarr = (new URL(config.get("url"))).origin
 log.info("Starting...", {sonarr: sonarr, logLevel: config.get("logLevel")})
 
 async function getSeries(name) {
-	log.verbose("Querying Sonarr for series", {name: name})
-	let search = await request({
-		url: `${sonarr}/api/series/lookup`,
-		qs: {
-			apikey: config.get("apikey"),
-			term: name
-		}
-	})
-	search = JSON.parse(search);
-	log.debug("Search result", {result: search})
-	let result = [];
-	let cleanResults;
-	if (search.length > 1) {
-		cleanResults = search.map(found => {
-			if (found.title === name) {
-				log.verbose("Got exact result", {name: name})
-				result.push(found);
+	try {
+		log.verbose("Querying Sonarr for series", {name: name})
+		let search = await request({
+			url: `${sonarr}/api/series/lookup`,
+			qs: {
+				apikey: config.get("apikey"),
+				term: name
 			}
-			return {
-				title: found.title,
-				seasonCount: found.seasonCount,
-				status: found.status,
-				tvdbId: found.tvdbId
+		})
+		search = JSON.parse(search);
+		log.debug("Search result", {result: search})
+		let result = [];
+		let cleanResults;
+		if (search.length > 1) {
+			cleanResults = search.map(found => {
+				if (found.title === name) {
+					log.verbose("Got exact result", {name: name})
+					result.push(found);
+				}
+				return {
+					title: found.title,
+					seasonCount: found.seasonCount,
+					status: found.status,
+					tvdbId: found.tvdbId
+				}
+			});
+			if (result.length === 0) {
+				result = search;
 			}
-		});
-		if (result.length === 0) {
-			result = search;
+		} else {
+			result.push(search[0]);
 		}
-	} else {
-		result.push(search[0]);
-	}
-		
-	if (result.length > 1) {
-		fail.search("Multiple results found for series, not adding.", {name: name, results: cleanResults})
-	} else if (result.length === 0) {
-		fail.search("No matches found for series.", {name: name})
-	} else {
-		return result.pop();
+			
+		if (result.length > 1) {
+			fail.search("Multiple results found for series, not adding.", {name: name, results: cleanResults})
+		} else if (result.length === 0) {
+			fail.search("No matches found for series.", {name: name})
+		} else {
+			return result.pop();
+		}
+	} catch(e) {
+		log.error("Error searching for series.", {series: name, error: JSON.stringify(e, replaceErrors)})
+		fail.search("Error searching for series.", {series: name, error: JSON.stringify(e, replaceErrors)})
 	}
 }
 
@@ -72,7 +77,8 @@ async function addSeries(series) {
 			json: true
 		})
 	} catch(e) {
-		fail.submit("Error adding series", Error.toJSON());
+		log.error("Error searching for series.", {series: name, error: JSON.stringify(e, replaceErrors)})
+		fail.submit("Error searching for series.", {series: name, error: JSON.stringify(e, replaceErrors)})
 	}
 	return;
 }
@@ -118,6 +124,10 @@ async function getAllSeries() {
 		}
 	});
 	allSeries = JSON.parse(allSeries);
+	if (!allSeries) {
+		log.error("Not able to get series list! Failing.", {sonarr: sonarr});
+		process.exit(1);
+	}
 	let cleanSeriesList = allSeries.map(series => series.title.toLowerCase())
 	log.debug("Got all series", {list: cleanSeriesList})
 	return cleanSeriesList;
@@ -134,50 +144,52 @@ async function getAllSeries() {
 //getSeries("Breaking Bad");
 
 async function run() {
-	let allSeries = await getAllSeries();
-	await setQualityProfileId();
-	let delimiter = config.get("delimiter");
-	let listPath = path.resolve(config.get("listfile"));
-	log.verbose("Path and delimiter set", {delimiter: delimiter, path: listPath});
-	let splitter = split(delimiter);
-	let addSeriesStream = new stream.Writable({
-		async write(chunk, encoding, callback) {
-			let series = chunk.toString();
-			log.verbose("Checking if series is already in Sonarr", {series: series})
-			if (!allSeries.includes(series.toLowerCase())) {
-				log.info("Series is not in Sonarr, looking up series", {series: series})
-				let got = await getSeries(series);
-				if (got) {
-					log.info("Got result, submitting to Sonarr", {series: series})
-					await addSeries(got);
+	try {
+		let allSeries = await getAllSeries();
+		await setQualityProfileId();
+		let delimiter = config.get("delimiter");
+		let listPath = path.resolve(config.get("listfile"));
+		log.verbose("Path and delimiter set", {delimiter: delimiter, path: listPath});
+		let splitter = split(delimiter);
+		let addSeriesStream = new stream.Writable({
+			async write(chunk, encoding, callback) {
+				let series = chunk.toString();
+				log.verbose("Checking if series is already in Sonarr", {series: series})
+				if (!allSeries.includes(series.toLowerCase())) {
+					log.info("Series is not in Sonarr, looking up series", {series: series})
+					let got = await getSeries(series);
+					if (got) {
+						log.info("Got result, submitting to Sonarr", {series: series})
+						await addSeries(got);
+					}
+				} else {
+					log.verbose("Series is already in Sonarr, skipping", {series: series})
 				}
-			} else {
-				log.verbose("Series is already in Sonarr, skipping", {series: series})
+				callback(null);
 			}
-			callback(null);
-		}
-	})
-	await pipeline(
-		fs.createReadStream(listPath),
-		splitter,
-		addSeriesStream
-	)
-
+		})
+		await pipeline(
+			fs.createReadStream(listPath),
+			splitter,
+			addSeriesStream
+		)
+	} catch(e) {
+		log.error("Error occured.", {error: JSON.stringify(e, replaceErrors)})
+	}
 }
 
-if (!('toJSON' in Error.prototype))
-Object.defineProperty(Error.prototype, 'toJSON', {
-    value: function () {
-        let alt = {};
+function replaceErrors(key, value) {
+    if (value instanceof Error) {
+        let error = {};
 
-        Object.getOwnPropertyNames(this).forEach(function (key) {
-            alt[key] = this[key];
-        }, this);
+        Object.getOwnPropertyNames(value).forEach(function (key) {
+            error[key] = value[key];
+        });
 
-        return alt;
-    },
-    configurable: true,
-    writable: true
-});
+        return error;
+    }
+
+    return value;
+}
 
 run();
