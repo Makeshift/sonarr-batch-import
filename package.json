@@ -19,7 +19,6 @@
   "dependencies": {
     "binary-split": "^1.0.5",
     "cli-highlight": "^2.1.0",
-    "log-rotate": "^0.2.8",
     "nconf": "^0.10.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
