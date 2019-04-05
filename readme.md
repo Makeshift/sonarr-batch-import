@@ -1,3 +1,9 @@
+# Note
+
+Sonarr V3 already has a mass-import feature. I made this as I was using Sonarr V2 and didn't realise the V3 alpha was out. Whoops!
+
+However, if you still find it useful, cool :)
+
 # Mass importing of TV series into Sonarr
 
 A relatively simple to configure script that will mass-add a list of TV series into Sonarr.
