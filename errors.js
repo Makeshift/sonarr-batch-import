@@ -2,7 +2,7 @@ function replaceErrors(key, value) {
     if (value instanceof Error) {
         let error = {};
 
-        Object.getOwnPropertyNames(value).forEach(function (key) {
+        Object.getOwnPropertyNames(value).forEach(function(key) {
             error[key] = value[key];
         });
 
@@ -12,4 +12,6 @@ function replaceErrors(key, value) {
     return value;
 }
 
-module.exports = {replaceErrors: replaceErrors}
+module.exports = {
+    replaceErrors: replaceErrors
+}
