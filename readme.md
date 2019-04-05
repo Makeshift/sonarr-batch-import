@@ -18,6 +18,8 @@ This project uses [nconf](https://github.com/indexzero/nconf), so settings can b
 }
 ```
 
+My `series.txt` is simply a list of series names delimited by newline.
+
 | Key       | Description                                                        | Optional | Default Value         |
 |-----------|--------------------------------------------------------------------|----------|-----------------------|
 | url       | The URL of your Sonarr instance                                    | No       |                       |
@@ -38,3 +40,16 @@ This project uses [nconf](https://github.com/indexzero/nconf), so settings can b
 * `git clone https://github.com/Makeshift/sonarr-batch-import.git`
 * `npm install`
 * `node index.js`
+
+## Error handling
+
+There is a decent chunk of logic dedicated to handling duplicate results.
+
+* If you request a TV series that responds with multiple series, it will automatically pick the one that matches the exact name.
+* If there is no exact name match (or multiple exact name matches) then it will output all results to `logs/searchFailures.log`. You can then replace the entry with the TVDBID for an exact match. (? Untested)
+* If we fail to submit a series to Sonarr, we'll log it out to `logs/addFailures.log` where you can review and retry.
+* It is safe to retry adding series, as it will skip series that Sonarr already has.
+* `logs/run.log` will always contain a debug output of the program run. If you wish to submit an issue, please include it.
+
+Thanks!
+
