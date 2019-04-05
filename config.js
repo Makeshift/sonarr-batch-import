@@ -14,6 +14,7 @@ nconf.defaults({
 	profileId: undefined,
 	delimiter: os.EOL,
 	rootFolderId: null,
+	rootFolder: null,
 	searchForMissingEpisodes: true,
 	ignoreEpisodesWithFiles: false,
 	ignoreEpisodesWithoutFiles: false

@@ -59,28 +59,31 @@ async function getSeries(name) {
 	}
 }
 
-async function addSeries(series, rootFolder) {
-	log.info("Adding series to Sonarr", {series: series.title});
+async function addSeries(series) {
+	log.info("Adding series to Sonarr", {series: series.title, folder: config.get("rootFolder")});
 	try {
-		await request.post({
-			url: `${sonarr}/api/series`,
-			body: {
+		let sonarrBody = {
 				tvdbId: series.tvdbId,
 				title: series.title,
 				qualityProfileId: config.get("profileId"),
 				titleSlug: series.titleSlug,
 				images: series.images,
 				seasons: series.seasons,
-				path: rootFolder + series.title,
+				rootFolderPath: config.get("rootFolder"),
 				searchForMissingEpisodes: config.get("searchForMissingEpisodes"),
 				ignoreEpisodesWithFiles: config.get("ignoreEpisodesWithFiles"),
 				ignoreEpisodesWithoutFiles: config.get("ignoreEpisodesWithoutFiles")
-			},
+			};
+			log.verbose("Extra series info", {series: sonarrBody})
+		await request.post({
+			url: `${sonarr}/api/series`,
+			body: sonarrBody,
 			qs: {
 				apikey: config.get("apikey")
 			},
 			json: true
 		})
+		log.info("Series successfully added", {series: series.title})
 	} catch(e) {
 		log.error("Error adding series.", {series: series, error: JSON.stringify(e, replaceErrors)})
 		fail.submit("Error adding series.", {series: series, error: JSON.stringify(e, replaceErrors)})
@@ -130,7 +133,8 @@ async function getRootFolder() {
 			json: true
 		});
 		if (folders.length === 1) {
-			log.info("Setting root folder.", {folder: folders[0].path})
+			log.info("Setting root folder.", {folder: folders[0].path});
+			config.set("rootFolder", folders[0].path)
 			return folders[0].path;
 		} else if (config.get("rootFolderId")) {
 			let returnFolder;
@@ -143,6 +147,7 @@ async function getRootFolder() {
 				log.error("Couldn't find the rootFolderId you specified!", {lookedFor: config.get("rootFolderId"), got: folders})
 				process.exit(1);
 			}
+			config.set("rootFolder", returnFolder)
 			return returnFolder;
 		} else {
 			log.error("Multiple root folders found! Override it in your config.json", {folders: folders});
@@ -185,7 +190,7 @@ async function getAllSeries() {
 async function run() {
 	try {
 		let allSeries = await getAllSeries();
-		let rootFolder = await getRootFolder();
+		await getRootFolder();
 		await setQualityProfileId();
 		let delimiter = config.get("delimiter");
 		let listPath = path.resolve(config.get("listfile"));
@@ -197,7 +202,7 @@ async function run() {
 				log.verbose("Checking if series is already in Sonarr", {series: series})
 				if (!allSeries.includes(series.toLowerCase())) {
 					log.info("Series is not in Sonarr, looking up series", {series: series})
-					let got = await getSeries(series, rootFolder);
+					let got = await getSeries(series);
 					if (got) {
 						log.verbose("Got result, submitting to Sonarr", {series: series})
 						await addSeries(got);
