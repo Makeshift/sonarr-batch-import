@@ -177,16 +177,6 @@ async function getAllSeries() {
 	return cleanSeriesList;
 }
 
-// let debugWritable = new stream.Writable({
-// 	write(chunk, encoding, callback) {
-// 		console.log(chunk.toString());
-// 		callback(null);
-// 	}
-// })
-
-
-//getSeries("Breaking Bad");
-
 async function run() {
 	try {
 		let allSeries = await getAllSeries();
